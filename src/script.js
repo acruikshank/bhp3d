@@ -306,7 +306,10 @@ page2CameraGui.add(page2Camera,'z',0,6,.01).onChange(()=>camera.position.z = pag
 
 const page2EaseExp = 2
 const page2Ease = x=>x<.5?.5*Math.pow(2*x,page2EaseExp):1-.5*Math.pow(2-2*x, page2EaseExp)
-const opInEase = x => 1-Math.pow(1-x, 2)
+
+const power2out = x => 1-Math.pow(1-x, 2)
+const power4out = x => 1-Math.pow(1-x, 4)
+const power8out = x => 1-Math.pow(1-x, 8)
 
 const pages = [{
     // page 0 (everything offscreen)
@@ -316,9 +319,9 @@ const pages = [{
         buildingGroup.visible = false
     },
     params: [
-        {o: cutout1.position,      p: {x:objectX-panelWidth/3, y:objectY, z:objectZ - page0ZOffset}},
-        {o: cutout2Group.position, p: {x:objectX,              y:objectY, z:objectZ - page0ZOffset}},
-        {o: cutout3.position,      p: {x:objectX+panelWidth/3, y:objectY, z:objectZ - page0ZOffset}}
+        {o: cutout1.position,      p: {x:objectX-panelWidth/3, y:objectY - 3, z:objectZ - page0ZOffset}, ease: power4out},
+        {o: cutout2Group.position, p: {x:objectX,              y:objectY - 3, z:objectZ - page0ZOffset}, ease: power4out},
+        {o: cutout3.position,      p: {x:objectX+panelWidth/3, y:objectY - 3, z:objectZ - page0ZOffset}, ease: power4out}
     ]
 }, {
     // page 1 (hover above panel)
@@ -361,11 +364,11 @@ const pages = [{
     complete: () => console.log("PAGE 3"),
     params: [
     {o: camera.position,       p: {x:0, y:.2, z:8}, ease:page2Ease},
-    {o: cutout1.position,      p: {x:-2.5,       y:hoverHeight, z:hoverDepth}},
+    {o: cutout1.position,      p: {x:-2,       y:hoverHeight, z:hoverDepth}},
     {o: cutout1.rotation,      p: {x:rotation.x, y:rotation.y,  z:rotation.z}},
     {o: cutout2Group.position, p: {x: 0,         y:hoverHeight, z:hoverDepth}},
     {o: cutout2Group.rotation, p: {x:rotation.x, y:rotation.y,  z:rotation.z}},
-    {o: cutout3.position,      p: {x: 2.5,       y:hoverHeight, z:hoverDepth}},
+    {o: cutout3.position,      p: {x: 2,       y:hoverHeight, z:hoverDepth}},
     {o: cutout3.rotation,      p: {x:rotation.x, y:rotation.y,  z:rotation.z}},
 
     {o: cutout2.position,      p: {x:0,      z:0}},
@@ -398,9 +401,9 @@ const pages = [{
     {o: cutout2.position,      p: {x: .75, z:.75}},
     {o: matrixCutout.position, p: {x: -.75, z:-.75}},
 
-    {o: matrixMat,             p: {opacity:1}, ease:opInEase},
-    {o: infillMat,             p: {opacity:1}, ease:opInEase},
-    {o: sideMaterial,          p: {opacity:0}, ease:opInEase},
+    {o: matrixMat,             p: {opacity:1}, ease:power2out},
+    {o: infillMat,             p: {opacity:1}, ease:power2out},
+    {o: sideMaterial,          p: {opacity:0}, ease:power2out},
     ]
 }, {
     // page 4b (three sections of panel)
