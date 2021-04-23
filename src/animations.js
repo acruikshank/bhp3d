@@ -36,7 +36,7 @@ export class Animations {
         const transitions = []
         page1.params.forEach(param => {            
             for (let other, i=0; other=page2.params[i]; i++) if (param.o === other.o) {
-                for (let k in param.p) if (other.p[k] != undefined) {
+              for (let k in param.p) if (other.p[k] != undefined) {
                     transitions.push(tween(param.o, k, param.p[k], other.p[k]-param.p[k], param.ease || ident))
                 }
             }
@@ -58,7 +58,7 @@ export class Animations {
       }
       while (this.page > 0 && nextFraction < this.pages[this.page].startTime) {
         this.transition(this.pages[this.page].startTime)
-        this.completePage(this.page-1)
+        this.completePage(this.page-1) 
       }
       this.transition(nextFraction)
 

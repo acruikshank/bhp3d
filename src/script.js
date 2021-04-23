@@ -26,7 +26,7 @@ import * as dat from 'dat.gui'
  const hoverHeight = 1
  const hoverDepth = 2
  const panelWidth = 2.42
- const page0ZOffset = 1.3
+ const page0ZOffset = .5
  
  const cameraX = 0
  const cameraY = -1.19
@@ -38,6 +38,7 @@ import * as dat from 'dat.gui'
  
  const floorColor = 0xaaaaaa
  const windowColor = 0x000000
+ const groundColor = 0x111111
  
 /**
  * Debug
@@ -122,13 +123,22 @@ windowMaterial.opacity = 0
 windowGui.add(windowMaterial, 'metalness').min(0).max(1).step(.0001)
 windowGui.add(windowMaterial, 'roughness').min(0).max(1).step(.0001)
 
+const groundMaterial = new THREE.MeshBasicMaterial({color: groundColor})
+const groundGui = gui.addFolder('ground')
+groundGui.addColor({groundColor: groundMaterial.color.getHex()}, 'groundColor')
+    .onChange((c)=>groundMaterial.color.setHex(c))
+groundMaterial.opacity = 0
+groundMaterial.transparent = true
+
+
 /**
  * Objects
  */
 
 const startObjects = new Date();
 
-const rotation = {x: 0.244, y: .296, z: 0}
+// const rotation = {x: 0.244, y: .296, z: 0}
+const rotation = {x: -.1, y: .3, z: 0}
 const rotGui = gui.addFolder('rotation')
 const rOnChange = ()=>{
     cutout1.rotation.set(rotation.x, rotation.y, rotation.z)
@@ -194,6 +204,11 @@ Array(24).fill().forEach((_,i)=>Array(2).fill().forEach((_,j) => {
     buildingGroup.add(window)
 }))
 
+const groundGeometry = new THREE.PlaneBufferGeometry(200, 50)
+const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+ground.rotation.x = -Math.PI/2
+ground.position.set(50, -1.4, 22)
+buildingGroup.add(ground)
 
 const sectionGeometry = new THREE.BoxBufferGeometry(2/3, 2, .3)
 const section1 = new THREE.Mesh(material, sectionGeometry)
@@ -266,7 +281,7 @@ window.addEventListener('resize', () =>
  */
 
 // Base camera
-const camera = new THREE.PerspectiveCamera(50, sizes.width / sizes.height, 0.1, 100)
+const camera = new THREE.PerspectiveCamera(50, sizes.width / sizes.height, 0.1, 200)
 global.cam = camera
 camera.position.x = cameraX
 camera.position.y = cameraY
@@ -307,68 +322,91 @@ page2CameraGui.add(page2Camera,'z',0,6,.01).onChange(()=>camera.position.z = pag
 const page2EaseExp = 2
 const page2Ease = x=>x<.5?.5*Math.pow(2*x,page2EaseExp):1-.5*Math.pow(2-2*x, page2EaseExp)
 
+const power2in = x => Math.pow(x, 2)
+const power4in = x => Math.pow(x, 4)
+const power6in = x => Math.pow(x, 6)
+const power8in = x => Math.pow(x, 8)
+
 const power2out = x => 1-Math.pow(1-x, 2)
 const power4out = x => 1-Math.pow(1-x, 4)
+const power6out = x => 1-Math.pow(1-x, 6)
 const power8out = x => 1-Math.pow(1-x, 8)
+const power16out = x => 1-Math.pow(1-x, 16)
+
+const pop = x => 0
 
 const pages = [{
-    // page 0 (everything offscreen)
+    // page 0 then (hover above panel)
     duration: 3,
     complete: () => {
         console.log("PAGE 0")
         buildingGroup.visible = false
+        console.log(camera.rotation)
     },
     params: [
+        {o: camera.rotation,       p: {x:1.4536875822280313, y: 0, z: 0}, ease: power4out},
         {o: cutout1.position,      p: {x:objectX-panelWidth/3, y:objectY - 3, z:objectZ - page0ZOffset}, ease: power4out},
         {o: cutout2Group.position, p: {x:objectX,              y:objectY - 3, z:objectZ - page0ZOffset}, ease: power4out},
         {o: cutout3.position,      p: {x:objectX+panelWidth/3, y:objectY - 3, z:objectZ - page0ZOffset}, ease: power4out}
     ]
 }, {
-    // page 1 (hover above panel)
-    duration: 3,
+    // page 1 then (pull away from building)
+    duration: 5,
     complete: () => { 
         console.log("PAGE 1")
         buildingGroup.visible = true
+        console.log(camera.rotation)
     },
     params: [
-    {o: camera.position,       p: {x:cameraX, y:cameraY, z:cameraZ}},
-    {o: cutout1.position,      p: {x:objectX-panelWidth/3, y:objectY, z:objectZ}},
-    {o: cutout2Group.position, p: {x:objectX,              y:objectY, z:objectZ}},
-    {o: cutout3.position,      p: {x:objectX+panelWidth/3, y:objectY, z:objectZ}},
-    {o: floorMaterial,         p: {opacity:0}},
-    {o: side2Material,         p: {opacity:0}},
-    {o: windowMaterial,        p: {opacity:0}},
-    {o: cutout1.rotation,      p: {x:0, y:0, z:0}},
-    {o: cutout2Group.rotation, p: {x:0, y:0, z:0}},
-    {o: cutout3.rotation,      p: {x:0, y:0, z:0}},
+        {o: camera.position,       p: {x:cameraX}, ease: power2in},
+        {o: camera.position,       p: {z:cameraZ}, ease: power2out},
+        {o: camera.position,       p: {y:cameraY}, ease: power2out},
+        {o: camera.rotation,       p: {x:1.4}, ease: power4out},
+        {o: camera.rotation,       p: {y:0, z:0}},
+        {o: cutout1.position,      p: {x:objectX-panelWidth/3, y:objectY, z:objectZ}},
+        {o: cutout2Group.position, p: {x:objectX,              y:objectY, z:objectZ}},
+        {o: cutout3.position,      p: {x:objectX+panelWidth/3, y:objectY, z:objectZ}},
+        {o: floorMaterial,         p: {opacity:0}, ease: power4out},
+        {o: side2Material,         p: {opacity:0}, ease: power4out},
+        {o: windowMaterial,        p: {opacity:0}, ease: power4out},
+        {o: groundMaterial,        p: {opacity:0}, ease: power4out},
+        {o: cutout1.rotation,      p: {x:0, y:0, z:0}},
+        {o: cutout2Group.rotation, p: {x:0, y:0, z:0}},
+        {o: cutout3.rotation,      p: {x:0, y:0, z:0}},
     ]
 }, {
-    // page 2 (pull away from building)
+    // page 2 zoom out of building
     duration: 3,
-    complete: () => console.log("PAGE 2"),
+    complete: () => {
+        console.log("PAGE 2")
+        console.log(camera.rotation)
+    },
     params: [
-    {o: camera.position,       p: {x:page2Camera.x, y:page2Camera.y, z:page2Camera.z}, ease:page2Ease},
+    {o: camera.position,       p: {x:-4.75, y:0.50, z:4.05}, ease:power2out},  
+    {o: camera.rotation,       p: {x: -0.23, y: -0.757, z: -0.194}, ease:power2out},
     {o: cutout1.position,      p: {x:objectX-panelWidth/3, y:objectY, z:objectZ}},
     {o: cutout2Group.position, p: {x:objectX,              y:objectY, z:objectZ}},
     {o: cutout3.position,      p: {x:objectX+panelWidth/3, y:objectY, z:objectZ}},
     {o: cutout1.rotation,      p: {x:0, y:0, z:0}},
     {o: cutout2Group.rotation, p: {x:0, y:0, z:0}},
     {o: cutout3.rotation,      p: {x:0, y:0, z:0}},
-    {o: floorMaterial,         p: {opacity:1}},
-    {o: side2Material,         p: {opacity:1}},
-    {o: windowMaterial,        p: {opacity:.5}},
+    {o: floorMaterial,         p: {opacity:1}, ease: power4out},
+    {o: side2Material,         p: {opacity:1}, ease: power2out},
+    {o: windowMaterial,        p: {opacity:.5}, ease: power4out},
+    {o: groundMaterial,         p: {opacity:1}, ease: power2out},
     ]
 }, {
-    // page 3 (close up of panel sections)
+    // page 3 (close up of panel sectionss)
     duration: 1,
     complete: () => console.log("PAGE 3"),
     params: [
-    {o: camera.position,       p: {x:0, y:.2, z:8}, ease:page2Ease},
-    {o: cutout1.position,      p: {x:-2,       y:hoverHeight, z:hoverDepth}},
+    {o: camera.position,       p: {x: -2.00, y: 2.25, z: 8}, ease:page2Ease},
+    {o: camera.rotation,       p: {x: -0.300, y: -0.0, z: -0.0}},
+    {o: cutout1.position,      p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
     {o: cutout1.rotation,      p: {x:rotation.x, y:rotation.y,  z:rotation.z}},
-    {o: cutout2Group.position, p: {x: 0,         y:hoverHeight, z:hoverDepth}},
+    {o: cutout2Group.position, p: {x: -.1,         y:hoverHeight, z:hoverDepth}},
     {o: cutout2Group.rotation, p: {x:rotation.x, y:rotation.y,  z:rotation.z}},
-    {o: cutout3.position,      p: {x: 2,       y:hoverHeight, z:hoverDepth}},
+    {o: cutout3.position,      p: {x: 1.5,       y:hoverHeight + .25, z:hoverDepth - 2}},
     {o: cutout3.rotation,      p: {x:rotation.x, y:rotation.y,  z:rotation.z}},
 
     {o: cutout2.position,      p: {x:0,      z:0}},
@@ -378,6 +416,7 @@ const pages = [{
     {o: infillCutout.position, p: {x:0,      z:0}},
     {o: infillCutout.rotation, p: {x:0, y:0, z:0}},
 
+    {o: groundMaterial,        p: {opacity:0}},
     {o: floorMaterial,         p: {opacity:0}},
     {o: side2Material,         p: {opacity:0}},
     {o: windowMaterial,        p: {opacity:0}},
@@ -425,6 +464,8 @@ controls.enableDamping = true
 controls.addEventListener('change', ()=>{
     // page2Camera.set(camera.position.x, camera.position.y, camera.position.z)
     page2CameraGui.updateDisplay()
+    console.log("camera position", camera.position)
+    console.log("camera rotation", camera.rotation)
 })
 
 const clock = new THREE.Clock()
@@ -443,7 +484,7 @@ gui.add({page4b: ()=>animations.transitionToPage(5, clock.getElapsedTime())}, "p
 const tick = () =>
 {    
     // Update controls
-    controls.update()
+    // controls.update()
 
     animations.update(clock.getElapsedTime())
 
@@ -459,60 +500,3 @@ tick()
 
 animations.transitionToPage(1, clock.getElapsedTime())
 
-// const to1 = {a: 0, b: 0}
-// const to2 = {a: 0, b: 0, c:0}
-// const to3 = {b: 0, c: 0}
-// const testA = new Animations([{
-//     duration: 1000,
-//     complete: () => console.log('page 0'),
-//     params: [
-//         {o: to1, p: {a: 0, b: 0}},
-//         {o: to2, p: {a: 0, b: 0, c: 0}},
-//     ]
-// },{
-//     duration: 2000,
-//     complete: () => console.log('page 1'),
-//     params: [
-//         {o: to1, p: {a: 10, b: 10}},
-//         {o: to2, p: {a: 1, b: 2, c: 3}},
-//         {o: to3, p: {b: 0, c: 0}}
-//     ]
-// },{
-//     duration: 0,
-//     complete: () => console.log('page 2'),
-//     params: [
-//         {o: to2, p: {c: 6}},
-//         {o: to3, p: {b: 8, c: 8}}
-//     ]
-// }])
-
-// testA.transitionToPage(2, 0)
-// testA.update(200)
-// console.log(200, to1, to2, to3)
-// testA.update(500)
-// console.log(500, to1, to2, to3)
-// testA.update(999)
-// console.log(999, to1, to2, to3)
-// testA.update(1002)
-// console.log(1002, to1, to2, to3)
-// testA.update(1500)
-// console.log(1500, to1, to2, to3)
-// testA.update(2000)
-// console.log(2000, to1, to2, to3)
-// testA.update(3500)
-// console.log(3500, to1, to2, to3)
-
-// console.log('transition back')
-// testA.transitionToPage(0, 4000)
-// testA.update(4500)
-// console.log(4500, to1, to2, to3)
-// testA.update(5000)
-// console.log(5000, to1, to2, to3)
-// testA.update(5500)
-// console.log(5500, to1, to2, to3)
-// testA.update(6000)
-// console.log(6000, to1, to2, to3)
-// testA.update(6500)
-// console.log(6500, to1, to2, to3)
-// testA.update(7200)
-// console.log(7200, to1, to2, to3)
