@@ -8,8 +8,8 @@ import * as dat from 'dat.gui'
 /**
  * TODO:
  * 1. [Done] create page between 3 and 4 where leftmost panel moves to center
- * 2. Add visibility to matrix and infill for page 4, and set position and rotation to that of cutout1
- * 3. use texture section from cutout 1 for infill and matrix
+ * 2. [Done] Add visibility to matrix and infill for page 4, and set position and rotation to that of cutout1
+ * 3. [Done] use texture section from cutout 1 for infill and matrix
  * 4. Add last 5 with robot (kr quantech ultra 120)
  * 5. Add animation by fraction option. (with slider)
  * 6. Have animation respond to screen aspect. Update animation on resize.
@@ -19,8 +19,10 @@ import * as dat from 'dat.gui'
  * 10. Add text animations based on fraction.
  * 11. Tie fraction to scroll.
  * 12. [Done] Fix pop for materials fading in an out
- * 13. Lazy load panels
+ * 13. Lazy generate panel geometry
  * 14. Garbage collect
+ * 15. [Done] Better matrix and infill textures
+ * 16. Create minimized THREE.js build
  */
 
 /**
@@ -48,7 +50,7 @@ import * as dat from 'dat.gui'
  const camera2Y = 0.46
  const camera2Z = 4.5758
  
- const floorColor = 0xaaaaaa
+ const floorColor = 0x111111
  const windowColor = 0x000000
  const groundColor = 0x111111
  const rotation = {x: -.1, y: .3, z: 0}
@@ -65,6 +67,8 @@ const textureLoader = new THREE.TextureLoader()
 
 const matrixTexture = textureLoader.load('./textures/matrix.png')
 matrixTexture.wrapS = matrixTexture.wrapT = THREE.RepeatWrapping
+const matrixNormalTexture = textureLoader.load('./textures/matrix_normal.png')
+matrixNormalTexture.wrapS = matrixNormalTexture.wrapT = THREE.RepeatWrapping
 const infillTexture = textureLoader.load('./textures/infill.png')
 infillTexture.wrapS = infillTexture.wrapT = THREE.RepeatWrapping
 
@@ -98,23 +102,36 @@ sideMaterial.opacity = 1
 
 const side2Material = sideMaterial.clone()
 
-const matrixMat = new THREE.MeshStandardMaterial({color: 0x999999})
+const matrixMat = new THREE.MeshStandardMaterial({color: 0xd9d6d6})
 matrixMat.side = THREE.DoubleSide
 matrixMat.transparent = true
 matrixMat.map = matrixTexture
-matrixMat.metalness = 0
-matrixMat.roughness = 1
+matrixMat.normalMap = matrixNormalTexture
+matrixMat.metalness = .31
+matrixMat.roughness = .63
 matrixMat.opacity = 0
+const matrixMatFolder = gui.addFolder('matrix mat')
+matrixMatFolder.addColor({matColor: matrixMat.color.getHex()}, 'matColor')
+    .onChange((c)=>matrixMat.color.setHex(c))
+matrixMatFolder.add(matrixMat, 'metalness').min(0).max(1).step(.0001)
+matrixMatFolder.add(matrixMat, 'roughness').min(0).max(1).step(.0001)
 
-const infillMat = new THREE.MeshStandardMaterial({color: 0x999999})
+const infillMat = new THREE.MeshStandardMaterial({color: 0xe6e6e6})
 infillMat.side = THREE.DoubleSide
 infillMat.transparent = true
 infillMat.map = infillTexture
-infillMat.metalness = 0
+infillMat.normalMap = matrixNormalTexture
+gui.add(infillMat, 'displacementScale').min(-.1).max(0).step(.0001)
+infillMat.metalness = .45
 infillMat.roughness = 1
 infillMat.opacity = 0
+const infillMatFolder = gui.addFolder('infill mat')
+infillMatFolder.addColor({matColor: infillMat.color.getHex()}, 'matColor')
+    .onChange((c)=>infillMat.color.setHex(c))
+infillMatFolder.add(infillMat, 'metalness').min(0).max(1).step(.0001)
+infillMatFolder.add(infillMat, 'roughness').min(0).max(1).step(.0001)
 
-const floorMaterial = new THREE.MeshStandardMaterial({color: 0x111111})
+const floorMaterial = new THREE.MeshStandardMaterial({color: floorColor})
 const floorGui = gui.addFolder('floor')
 floorGui.addColor({floorColor: floorMaterial.color.getHex()}, 'floorColor')
     .onChange((c)=>floorMaterial.color.setHex(c))
@@ -189,13 +206,13 @@ const cutout5 = new THREE.Mesh(
 cutout5.position.set(objectX+panelWidth+gap,objectY,objectZ)
 
 const infillCutout = new THREE.Mesh(    
-    panelGeometry(panelWidth/3, 2.1, .2, 128, 128, 13.1, zfn(-0,-1,2/3,2.1)),
+    panelGeometry(panelWidth/3, 2.1, .2, 128, 128, 13.1, zfn(-0.666,-1,2/3,2.1)),
     infillMat
 )
 infillCutout.visible = false
 
 const matrixCutout = new THREE.Mesh(    
-    panelGeometry(panelWidth/3, 2.1, .2, 128, 128, 12.55, zfn(-0,-1,2/3,2.1)),
+    panelGeometry(panelWidth/3, 2.1, .2, 128, 128, 12.55, zfn(-0.666,-1,2/3,2.1)),
     matrixMat
 )
 matrixCutout.visible = false
@@ -350,7 +367,7 @@ const pop = x => 0
 
 const pages = [{
     // page 0 then (hover above panel)
-    duration: .2, //3,
+    duration: 3,
     complete: () => {
         console.log("PAGE 0")
         buildingGroup.visible = false
@@ -364,7 +381,7 @@ const pages = [{
     ]
 }, {
     // page 1 then (pull away from building)
-    duration: .2, //5,
+    duration: 5,
     complete: () => { 
         console.log("PAGE 1")
         buildingGroup.visible = true
@@ -390,7 +407,7 @@ const pages = [{
     ]
 }, {
     // page 2 zoom out of building
-    duration: .2,// 3,
+    duration: 3,
     complete: () => {
         console.log("PAGE 2")
         buildingGroup.visible = true
@@ -399,18 +416,18 @@ const pages = [{
         console.log(camera.rotation)
     },
     params: [
-    {o: camera.position,    p: {x:-4.75, y:0.50, z:4.05}, ease:power2out},  
-    {o: camera.rotation,    p: {x: -0.23, y: -0.757, z: -0.194}, ease:power2out},
-    {o: cutout1.position,   p: {x:objectX-panelWidth/3, y:objectY, z:objectZ}},
-    {o: cutout2.position,   p: {x:objectX,              y:objectY, z:objectZ}},
-    {o: cutout3.position,   p: {x:objectX+panelWidth/3, y:objectY, z:objectZ}},
-    {o: cutout1.rotation,   p: {x:0, y:0, z:0}},
-    {o: cutout2.rotation,   p: {x:0, y:0, z:0}},
-    {o: cutout3.rotation,   p: {x:0, y:0, z:0}},
-    {o: floorMaterial,      p: {opacity:1}, ease: power4out},
-    {o: side2Material,      p: {opacity:1}, ease: power2out},
-    {o: windowMaterial,     p: {opacity:.5}, ease: power4out},
-    {o: groundMaterial,     p: {opacity:1}, ease: power2out},
+        {o: camera.position,    p: {x:-4.75, y:0.50, z:4.05}, ease:power2out},  
+        {o: camera.rotation,    p: {x: -0.23, y: -0.757, z: -0.194}, ease:power2out},
+        {o: cutout1.position,   p: {x:objectX-panelWidth/3, y:objectY, z:objectZ}},
+        {o: cutout2.position,   p: {x:objectX,              y:objectY, z:objectZ}},
+        {o: cutout3.position,   p: {x:objectX+panelWidth/3, y:objectY, z:objectZ}},
+        {o: cutout1.rotation,   p: {x:0, y:0, z:0}},
+        {o: cutout2.rotation,   p: {x:0, y:0, z:0}},
+        {o: cutout3.rotation,   p: {x:0, y:0, z:0}},
+        {o: floorMaterial,      p: {opacity:1}, ease: power4out},
+        {o: side2Material,      p: {opacity:1}, ease: power2out},
+        {o: windowMaterial,     p: {opacity:.5}, ease: power4out},
+        {o: groundMaterial,     p: {opacity:1}, ease: power2out},
     ]
 }, {
     // page 3 (close up of panel sectionss)
@@ -422,33 +439,24 @@ const pages = [{
         infillCutout.visible = false
     },
     params: [
-    {o: camera.position,        p: {x: -2.00, y: 2.25, z: 8}, ease: power4in},
-    {o: camera.rotation,        p: {x: -0.300, y: -0.0, z: -0.0}, ease: power4in},
-    {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
-    {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-    {o: cutout2.position,       p: {x: -.1,       y:hoverHeight,       z:hoverDepth}},
-    {o: cutout2.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-    {o: cutout3.position,       p: {x: 1.5,       y:hoverHeight + .25, z:hoverDepth - 2}},
-    {o: cutout3.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: camera.position,        p: {x: -2.00, y: 2.25, z: 8}, ease: power4in},
+        {o: camera.rotation,        p: {x: -0.300, y: -0.0, z: -0.0}, ease: power4in},
+        {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
+        {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: cutout2.position,       p: {x: -.1,       y:hoverHeight,       z:hoverDepth}},
+        {o: cutout2.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: cutout3.position,       p: {x: 1.5,       y:hoverHeight + .25, z:hoverDepth - 2}},
+        {o: cutout3.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
 
-    {o: groundMaterial,         p: {opacity:0}, ease: power4out},
-    {o: floorMaterial,          p: {opacity:0}, ease: power4out},
-    {o: side2Material,          p: {opacity:0}, ease: power4out},
-    {o: windowMaterial,         p: {opacity:0}, ease: power4out},
-    {o: sideMaterial,           p: {opacity:1}},
+        {o: groundMaterial,         p: {opacity:0}},
+        {o: floorMaterial,          p: {opacity:0}},
+        {o: side2Material,          p: {opacity:0}},
+        {o: windowMaterial,         p: {opacity:0}},
+        {o: sideMaterial,           p: {opacity:1}, ease: power4out},
     ]
 }, {
     // page 4 (cutout 1 in center)
-    /*
-    x: -0.7304821030593593
-y: 1.1187980781742106
-z: 8.35859461224657
-
-_x: -0.22098739913953544
-_y: 0.16429818330975826
-_z: 0.036728282249148994
-*/
-    duration: 1,
+    duration: 2,
     complete: () => {
         console.log("PAGE 4")
         buildingGroup.visible = false
@@ -458,23 +466,23 @@ _z: 0.036728282249148994
         infillCutout.visible = true
     },
     params: [
-    {o: camera.position,        p: {x: -0.73, y: 1.12, z: 8.36}},
-    {o: camera.rotation,        p: {x: -0.221, y: 0.164, z: 0.038}},
-    {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
-    {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-    {o: cutout2.position,       p: {x: -.1,       y:hoverHeight,       z:hoverDepth}},
-    {o: cutout2.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-    {o: cutout3.position,       p: {x: 1.5,       y:hoverHeight + .25, z:hoverDepth - 2}},
-    {o: cutout3.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: camera.position,        p: {x: -0.73, y: 1.12, z: 8.36}},
+        {o: camera.rotation,        p: {x: -0.221, y: 0.164, z: 0.038}},
+        {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
+        {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: cutout2.position,       p: {x: -.1,       y:hoverHeight,       z:hoverDepth}},
+        {o: cutout2.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: cutout3.position,       p: {x: 1.5,       y:hoverHeight + .25, z:hoverDepth - 2}},
+        {o: cutout3.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
 
-    {o: matrixCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
-    {o: matrixCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-    {o: infillCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
-    {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: matrixCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
+        {o: matrixCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: infillCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
+        {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
 
-    {o: matrixMat,              p: {opacity:0}, ease: power4out},
-    {o: infillMat,              p: {opacity:0}, ease: power4out},
-    {o: sideMaterial,           p: {opacity:0}},
+        {o: matrixMat,              p: {opacity:0}, ease: power4out},
+        {o: infillMat,              p: {opacity:0}, ease: power4out},
+        {o: sideMaterial,           p: {opacity:0}},
     ]
 }, {
     // page 5a (panel breaks into components)
@@ -485,19 +493,19 @@ _z: 0.036728282249148994
         cutout3.visible = false
     },
     params: [
-    // {o: camera.position,    p: {x:0, y:.2, z:8, ease:page2Ease}},
-    // {o: cutout1.position,   p: {x:-2.5, y:hoverHeight, z:hoverDepth}},
-    // {o: cutout1.rotation,   p: {x:rotation.x, y:rotation.y, z:rotation.z}},
+        {o: camera.position,        p: {x: -0.73, y: 1.12, z: 8.56}},
+        {o: camera.rotation,        p: {x: -0.26, y: 0.164, z: 0.038}},
 
-    {o: cutout1.position, p: {x:-.5,       y:hoverHeight - .5, z:hoverDepth + 3}},
-    {o: infillCutout.position, p: {x:-1.5,       y:hoverHeight - .5, z:hoverDepth+2.5}},
-    {o: matrixCutout.position, p: {x:-2.75,       y:hoverHeight - .5, z:hoverDepth+2}},
+        {o: cutout1.position,       p: {x:-.5,      y:hoverHeight - .5, z:hoverDepth + 3}},
+        {o: infillCutout.position,  p: {x:-1.5,     y:hoverHeight - .5, z:hoverDepth+2.5}},
+        {o: matrixCutout.position,  p: {x:-2.75,    y:hoverHeight - .5, z:hoverDepth+2}},
 
-    {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-    {o: matrixCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,     z:rotation.z}},
+        {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,     z:rotation.z}},
+        {o: matrixCutout.rotation,  p: {x:rotation.x, y:rotation.y,     z:rotation.z}},
 
-    {o: matrixMat,          p: {opacity:1}, ease:power2out},
-    {o: infillMat,          p: {opacity:1}, ease:power2out},
+        {o: matrixMat,              p: {opacity:1}},
+        {o: infillMat,              p: {opacity:1}},
     ]
 }, {
     // page 5b (three sections of panel)
@@ -505,12 +513,11 @@ _z: 0.036728282249148994
     complete: () => {
     },
     params: [
-    {o: cutout2.position,      p: {x:2.5, z:0}},
-    {o: matrixCutout.position, p: {x:-2.5, z:-.75}},
+        {o: cutout1.position,       p: {x:-0,      y:hoverHeight - .5, z:hoverDepth+1.75}},
+        {o: infillCutout.position,  p: {x:-1.5,    y:hoverHeight - .5, z:hoverDepth+2}},
+        {o: matrixCutout.position,  p: {x:-3,    y:hoverHeight - .5, z:hoverDepth+2.25}},
 
-    {o: cutout2.rotation,      p: {x:rotation.x, y:rotation.y, z:rotation.z}},
-    {o: infillCutout.rotation, p: {x:rotation.x, y:rotation.y, z:rotation.z}},
-    {o: matrixCutout.rotation, p: {x:rotation.x, y:rotation.y, z:rotation.z}},
+        {o: cutout1.rotation,       p: {y:rotation.y - .3}},
     ]
 }]
 
@@ -555,5 +562,5 @@ const tick = () =>
 
 tick()
 
-animations.transitionToPage(3, clock.getElapsedTime())
+animations.transitionToPage(6, clock.getElapsedTime())
 
