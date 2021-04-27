@@ -7,13 +7,26 @@
 html,
 body
 {
-    overflow: hidden;
-    height: 100%
+    background-color: #1f2126;
 }
 
 canvas {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 1005;
+}
+
+#scroll {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 5000px;
+    color: black;
+    text-align: center;
+    font-size: 100px;
 }
 
 .webgl
@@ -22,6 +35,10 @@ canvas {
     top: 0;
     left: 0;
     outline: none;
+}
+
+.dg.ac {
+    z-index: 2 !important;
 }
 
 

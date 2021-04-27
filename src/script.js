@@ -1,7 +1,7 @@
 import './style.css'
 import { zfn, panelGeometry } from './panels.js'
 import { Animations } from './animations.js'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import * as THREE from 'three'
 import * as dat from 'dat.gui'
@@ -388,9 +388,10 @@ objLoader.load('./kr_120.obj', (root) => {
             startRot = topPositions[30 - index]
             endRot = topPositions[29 - index]
         }
-        position += .02
+        position += .05
         rotators.forEach((r,i) => r.angle = lerp(startRot[i], endRot[i], fraction))
-    }, 20)
+        renderer.render(scene, camera)
+    }, 50)
 
     topPositions[0].forEach((a,i)=>rotators[i].angle = a)
     rF.add({"topRot":0}, "topRot").min(0).max(9).step(1).onChange(v=>topPositions[v].forEach((a,i)=>rotators[i].angle = a))
@@ -399,20 +400,6 @@ objLoader.load('./kr_120.obj', (root) => {
     robotScene.add(root);
     window.robot = root
 });
-
-for (let index = 0; index<30; index++) {
-if (index < 20) {
-    if (index&0x1) {
-        console.log('start: bot', (index+1)>>0x1, ' end: top', (index+1)>>0x1)
-    } else {
-        console.log('start: top', index>>0x1, ' end: bot', (index>>0x1)+1)
-    }
-} else {
-    console.log('start: top', 30 - index, ' end: top', 29 - index)
-}
-}
-
-
 
 /**
  * Lights
@@ -448,14 +435,15 @@ scene.add( directionalLight );
  */
 const sizes = {
     width: window.innerWidth,
-    height: window.innerHeight
+    height: window.innerHeight,
+    scroll: document.getElementById("scroll").offsetHeight - window.innerHeight
 }
 
-window.addEventListener('resize', () =>
-{
+const resize = () => {
     // Update sizes
     sizes.width = window.innerWidth
     sizes.height = window.innerHeight
+    sizes.scroll = document.getElementById("scroll").offsetHeight - window.innerHeight
 
     // Update camera
     camera.aspect = sizes.width / sizes.height
@@ -466,7 +454,11 @@ window.addEventListener('resize', () =>
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
     // postprocessing.composer.setSize( width, height );
-})
+}
+
+window.addEventListener('resize', resize)
+window.addEventListener('load', resize)
+
 
 /**
  * Camera
@@ -592,7 +584,7 @@ const pages = [{
     ]
 }, {
     // page 3 (close up of panel sectionss)
-    duration: 1,
+    duration: 2,
     complete: () => {
         console.log("PAGE 3")
         sideMaterial.transparent = true
@@ -613,7 +605,7 @@ const pages = [{
         {o: floorMaterial,          p: {opacity:0}},
         {o: side2Material,          p: {opacity:0}},
         {o: windowMaterial,         p: {opacity:0}},
-        {o: sideMaterial,           p: {opacity:1}, ease: power4out},
+        {o: sideMaterial,           p: {opacity:1}, ease: power2out},
     ]
 }, {
     // page 4 (cutout 1 in center)
@@ -629,20 +621,20 @@ const pages = [{
     params: [
         {o: camera.position,        p: {x: -0.73, y: 1.12, z: 8.36}},
         {o: camera.rotation,        p: {x: -0.221, y: 0.164, z: 0.038}},
-        {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
+        {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4in},
         {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
         {o: cutout2.position,       p: {x: -.1,       y:hoverHeight,       z:hoverDepth}},
         {o: cutout2.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
         {o: cutout3.position,       p: {x: 1.5,       y:hoverHeight + .25, z:hoverDepth - 2}},
         {o: cutout3.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
 
-        {o: matrixCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
+        {o: matrixCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4in},
         {o: matrixCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-        {o: infillCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
+        {o: infillCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4in},
         {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
 
-        {o: matrixMat,              p: {opacity:0}, ease: power4out},
-        {o: infillMat,              p: {opacity:0}, ease: power4out},
+        {o: matrixMat,              p: {opacity:0}, ease: power4in},
+        {o: infillMat,              p: {opacity:0}, ease: power4in},
         {o: sideMaterial,           p: {opacity:0}},
     ]
 }, {
@@ -718,13 +710,13 @@ const pages = [{
 }]
 
 // Controls
-const controls = new OrbitControls(camera, canvas)
-controls.enableDamping = true
-controls.addEventListener('change', ()=>{
-    page2CameraGui.updateDisplay()
-    console.log(`camera pos, x: ${camera.position.x.toFixed(3)}, y: ${camera.position.y.toFixed(3)}, z: ${camera.position.z.toFixed(3)}  
-    rot: x: ${camera.rotation.x.toFixed(3)}, y: ${camera.rotation.y.toFixed(3)}, z: ${camera.rotation.z.toFixed(3)}`)
-})
+// const controls = new OrbitControls(camera, canvas)
+// controls.enableDamping = true
+// controls.addEventListener('change', ()=>{
+//     page2CameraGui.updateDisplay()
+//     console.log(`camera pos, x: ${camera.position.x.toFixed(3)}, y: ${camera.position.y.toFixed(3)}, z: ${camera.position.z.toFixed(3)}  
+//     rot: x: ${camera.rotation.x.toFixed(3)}, y: ${camera.rotation.y.toFixed(3)}, z: ${camera.rotation.z.toFixed(3)}`)
+// })
 
 const clock = new THREE.Clock()
 clock.start()
@@ -741,22 +733,50 @@ gui.add({page5a: ()=>animations.transitionToPage(5, clock.getElapsedTime())}, "p
 gui.add({page5b: ()=>animations.transitionToPage(6, clock.getElapsedTime())}, "page5b")
 gui.add({page6: ()=>animations.transitionToPage(7, clock.getElapsedTime())}, "page6")
 
-const tick = () =>
-{    
-    // Update controls
-    // controls.update()
+// const tick = () =>
+// {    
+//     // Update controls
+//     // controls.update()
 
-    animations.update(clock.getElapsedTime())
+//     animations.update(clock.getElapsedTime())
 
-    // Render
-    renderer.render(scene, camera)
-    // postprocessing.composer.render( 0.1 );
+//     // Render
+//     renderer.render(scene, camera)
+//     // postprocessing.composer.render( 0.1 );
 
-    // Call tick again on the next frame
-    window.requestAnimationFrame(tick)
-}
+//     // Call tick again on the next frame
+//     window.requestAnimationFrame(tick)
+// }
 
-tick()
+// tick()
+// renderer.render(scene, camera)
 
-animations.transitionToPage(1, clock.getElapsedTime())
+let autoScroll = 0
+let userScroll = false
+
+
+window.addEventListener('load', ()=> {
+
+    document.addEventListener("scroll", e => {
+        animations.set(window.scrollY*animations.totalDuration/sizes.scroll)
+        renderer.render(scene, camera)        
+    })
+
+    let transitionStartTime = clock.getElapsedTime()
+    let transitionDuration = animations.pages[0].duration
+    let transitionStartScroll = 0
+    let transitionEndScroll = parseInt(sizes.scroll * animations.pages[1].startTime / animations.pages[animations.pages.length-1].startTime)
+    const transitionToPage = (e) => {
+        const scrollPoint = parseInt((clock.getElapsedTime() - transitionStartTime) * (transitionEndScroll-transitionStartScroll)/transitionDuration)
+        if (scrollPoint >= parseInt(transitionEndScroll)) {
+            autoScroll = false
+            return
+        }
+
+        window.scrollTo(0, scrollPoint)
+        window.requestAnimationFrame(transitionToPage)
+    }
+    window.scroll(0, 0)
+    transitionToPage()
+})
 
