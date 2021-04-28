@@ -1,6 +1,6 @@
 import './style.css'
 import { zfn, panelGeometry } from './panels.js'
-import { Animations } from './animations.js'
+import { Animations, offsetEase } from './animations.js'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { Title, ContentPane } from './content'
@@ -13,13 +13,13 @@ import * as dat from 'dat.gui'
  * 2. [Done] Add visibility to matrix and infill for page 4, and set position and rotation to that of cutout1
  * 3. [Done] use texture section from cutout 1 for infill and matrix
  * 4. [Done] Add last page with robot (kr quantech ultra 120)
- * 5. Add animation by fraction option. (with slider)
+ * 5. [Done] Add animation by fraction option. (with slider)
  * 6. Have animation respond to screen aspect. Update animation on resize.
  * 7. Tune aspect ratios
  * 8. Portrait aspect carosel
- * 9. Add text screens.
+ * 9. [Done] Add text screens.
  * 10. Add text animations based on fraction.
- * 11. Tie fraction to scroll.
+ * 11. [Done] Tie fraction to scroll.
  * 12. [Done] Fix pop for materials fading in an out
  * 13. Lazy generate panel geometry
  * 14. Garbage collect
@@ -530,13 +530,14 @@ const pop = x => 0
 const pages = [{
     // page 0 then (hover above panel)
     duration: 3,
+    ease: offsetEase(.1,.9),
     complete: () => {
         console.log("PAGE 0")
         buildingGroup.visible = false
         console.log(camera.rotation)
     },
     params: [
-        {o: camera.rotation,    p: {x:1.4536875822280313,   y: 0,           z: 0}, ease: power4out},
+        {o: camera.rotation,    p: {x:1.4536875822280313,   y: 0,           z: 0}, ease: power2out},
         {o: cutout1.position,   p: {x:objectX-panelWidth/3, y:objectY - 3,  z:objectZ - page0ZOffset}, ease: power4out},
         {o: cutout2.position,   p: {x:objectX,              y:objectY - 3,  z:objectZ - page0ZOffset}, ease: power4out},
         {o: cutout3.position,   p: {x:objectX+panelWidth/3, y:objectY - 3,  z:objectZ - page0ZOffset}, ease: power4out},
@@ -546,6 +547,7 @@ const pages = [{
 }, {
     // page 1 then (pull away from building)
     duration: 5,
+    ease: offsetEase(.1,.9),
     complete: () => { 
         console.log("PAGE 1")
         buildingGroup.visible = true
@@ -574,7 +576,8 @@ const pages = [{
     ]
 }, {
     // page 2 zoom out of building
-    duration: 3,
+    duration: 5,
+    ease: offsetEase(.1,.9),
     complete: () => {
         console.log("PAGE 2")
         buildingGroup.visible = true
@@ -602,7 +605,8 @@ const pages = [{
     ]
 }, {
     // page 3 (close up of panel sectionss)
-    duration: 2,
+    duration: 5,
+    ease: offsetEase(.1,.9),
     complete: () => {
         console.log("PAGE 3")
         sideMaterial.transparent = true
@@ -610,8 +614,8 @@ const pages = [{
         infillCutout.visible = false
     },
     params: [
-        {o: camera.position,        p: {x: -2.00, y: 2.25, z: 8}, ease: power4in},
-        {o: camera.rotation,        p: {x: -0.300, y: -0.0, z: -0.0}, ease: power4in},
+        {o: camera.position,        p: {x: -2.00, y: 2.25, z: 8}, ease: power2in},
+        {o: camera.rotation,        p: {x: -0.300, y: -0.0, z: -0.0}, ease: power2in},
         {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
         {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
         {o: cutout2.position,       p: {x: -.1,       y:hoverHeight,       z:hoverDepth}},
@@ -631,7 +635,8 @@ const pages = [{
     ]
 }, {
     // page 4 (cutout 1 in center)
-    duration: 2,
+    duration: 3,
+    ease: offsetEase(.3,1),
     complete: () => {
         console.log("PAGE 4")
         buildingGroup.visible = false
@@ -664,7 +669,8 @@ const pages = [{
     ]
 }, {
     // page 5a (panel breaks into components)
-    duration: 1,
+    duration: 3,
+    ease: offsetEase(0,.9),
     complete: () => { 
         console.log("PAGE 5a")
         cutout2.visible = false
@@ -693,7 +699,8 @@ const pages = [{
     ]
 }, {
     // page 5b (three sections of panel)
-    duration: 3,
+    duration: 9,
+    ease: offsetEase(.1,.9),
     complete: () => {
         robotScene.visible = true
         robotScene.position.x=matrixCutout.position.x - 2
@@ -722,7 +729,8 @@ const pages = [{
     ]
 }, {
     // page 6 (robot constructing panel)
-    duration: 2,
+    duration: 5,
+    ease: offsetEase(.1,.9),
     complete: () => {
         console.log("PAGE 6")
     },

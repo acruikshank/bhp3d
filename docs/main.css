@@ -8,6 +8,9 @@ html,
 body
 {
     background-color: #1f2126;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    color: white;
+    font-size: 2.5em;
 }
 
 canvas {
@@ -23,10 +26,8 @@ canvas {
     position: relative;
     z-index: 1;
     width: 100%;
-    height: 5000px;
-    color: black;
+    height: 15000px;
     text-align: center;
-    font-size: 100px;
 }
 
 .webgl
@@ -41,5 +42,84 @@ canvas {
     z-index: 2 !important;
 }
 
+#page-0-text {
+    margin: 10% auto;
+    width: 60%;
+}
+
+#page-1-text {
+    position: absolute;
+    bottom: 6%;
+    right: 2%;
+    width: 30%;
+    text-align: left;
+}
+
+#page-2-text {
+    position: absolute;
+    top: 37%;
+    left: 10%;
+    width: 29%;
+    text-align: left;
+}
+
+#page-3-text {
+    position: absolute;
+    text-align: left;
+    width: 28%;
+    top: 33%;
+    right: 16%;    
+}
+
+#page-4a-text {
+    position: absolute;
+    text-align: left;
+    width: 28%;
+    bottom: 12%;
+    left: 3%;    
+}
+
+#page-4b-text {
+    position: absolute;
+    text-align: center;
+    width: 100%;
+    bottom: 12%;
+}
+#page-4b-text div, #page-4b-text span {
+    width: 25%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#page-4c-text {
+    position: absolute;
+    text-align: left;
+    width: 28%;
+    bottom: 12%;
+    right: 3%;    
+}
+
+#page-5-text {
+    position: absolute;
+    bottom: 6%;
+    right: 2%;
+    width: 30%;
+    text-align: left;
+}
+
+
+
+.content-pane .content div {
+    font-size: .5em;
+    line-height: 1.3em;
+    margin-bottom: .4em;
+}
+.content-pane .content span {
+    display: block;
+    font-size: .25em;
+    font-weight: 100;
+    font-family: sans-serif;
+    line-height: 1.6em;
+}
 
 /*# sourceMappingURL=main.css.map*/

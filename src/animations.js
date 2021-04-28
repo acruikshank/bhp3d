@@ -1,6 +1,11 @@
 const tween = (o, prop, start, delta, ease) => x => o[prop] = start + ease(x) * delta
 const ident = x => x
 
+export const offsetEase = (s,e) => {
+  const ratio = 1/(e-s)
+  return x => x<s ? 0 : (x>e ? 1 : (x-s)*ratio) 
+}
+
 export class Animations {
     constructor(pages) {
         this.page = 0
@@ -13,6 +18,7 @@ export class Animations {
         for (let i=0; i< pages.length-1; i++) {
             let page = pages[i]
             this.pages.push({
+                ease: page.ease || ident,
                 startTime: pageStart,
                 duration: page.duration,
                 complete: page.complete,
@@ -79,8 +85,12 @@ export class Animations {
     // instantaneously updates to a fraction between two pages
     transition(fraction) {
       const basePage = this.pages[this.page]
-      const normalized = (fraction - basePage.startTime) / basePage.duration
+      try {
+      const normalized = basePage.ease((fraction - basePage.startTime) / basePage.duration)
       basePage.transitions.forEach(f => f(normalized))
       this.fraction = fraction
+    } catch (e) {
+      console.log(e, basePage, fraction, this.page, this.pages)        
     }
+  }
 }
