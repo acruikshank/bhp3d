@@ -2,7 +2,8 @@ import './style.css'
 import { zfn, panelGeometry } from './panels.js'
 import { Animations } from './animations.js'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import { Title, ContentPane } from './content'
 import * as THREE from 'three'
 import * as dat from 'dat.gui'
 
@@ -429,6 +430,12 @@ directionalGui.addColor({color: directionalLight.color.getHex()}, "color").onCha
 directionalLight.target = cutout2
 scene.add( directionalLight );
 
+/**
+ * Text content
+ */
+
+const panes = document.querySelectorAll('.content-pane')
+const content = Array(panes.length).fill().map((_,i) => new ContentPane(panes[i]))
 
 /**
  * Sizes
@@ -453,6 +460,7 @@ const resize = () => {
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
+    content.forEach(c=>c.resize(sizes.width, sizes.height))
     // postprocessing.composer.setSize( width, height );
 }
 
@@ -509,6 +517,7 @@ const power2in = x => Math.pow(x, 2)
 const power4in = x => Math.pow(x, 4)
 const power6in = x => Math.pow(x, 6)
 const power8in = x => Math.pow(x, 8)
+const power16in = x => Math.pow(x, 16)
 
 const power2out = x => 1-Math.pow(1-x, 2)
 const power4out = x => 1-Math.pow(1-x, 4)
@@ -530,7 +539,9 @@ const pages = [{
         {o: camera.rotation,    p: {x:1.4536875822280313,   y: 0,           z: 0}, ease: power4out},
         {o: cutout1.position,   p: {x:objectX-panelWidth/3, y:objectY - 3,  z:objectZ - page0ZOffset}, ease: power4out},
         {o: cutout2.position,   p: {x:objectX,              y:objectY - 3,  z:objectZ - page0ZOffset}, ease: power4out},
-        {o: cutout3.position,   p: {x:objectX+panelWidth/3, y:objectY - 3,  z:objectZ - page0ZOffset}, ease: power4out}
+        {o: cutout3.position,   p: {x:objectX+panelWidth/3, y:objectY - 3,  z:objectZ - page0ZOffset}, ease: power4out},
+
+        {o: content[0], p: {opacity: 1}}
     ]
 }, {
     // page 1 then (pull away from building)
@@ -557,6 +568,9 @@ const pages = [{
         {o: cutout1.rotation, p: {x:0, y:0, z:0}},
         {o: cutout2.rotation, p: {x:0, y:0, z:0}},
         {o: cutout3.rotation, p: {x:0, y:0, z:0}},
+
+        {o: content[0], p: {opacity: 1}, ease: power16out},
+        {o: content[1], p: {opacity: 0}, ease: power16in},
     ]
 }, {
     // page 2 zoom out of building
@@ -581,6 +595,10 @@ const pages = [{
         {o: side2Material,      p: {opacity:1}, ease: power2out},
         {o: windowMaterial,     p: {opacity:.5}, ease: power4out},
         {o: groundMaterial,     p: {opacity:1}, ease: power2out},
+
+        {o: content[0], p: {opacity: 0}},
+        {o: content[1], p: {opacity: 1}, ease: power4out},
+        {o: content[2], p: {opacity: 0}, ease: power4in},
     ]
 }, {
     // page 3 (close up of panel sectionss)
@@ -606,6 +624,10 @@ const pages = [{
         {o: side2Material,          p: {opacity:0}},
         {o: windowMaterial,         p: {opacity:0}},
         {o: sideMaterial,           p: {opacity:1}, ease: power2out},
+
+        {o: content[1], p: {opacity: 0}},
+        {o: content[2], p: {opacity: 1}, ease: power16out},
+        {o: content[3], p: {opacity: 0}, ease: power16in},
     ]
 }, {
     // page 4 (cutout 1 in center)
@@ -619,23 +641,26 @@ const pages = [{
         infillCutout.visible = true        
     },
     params: [
-        {o: camera.position,        p: {x: -0.73, y: 1.12, z: 8.36}},
+        {o: camera.position,        p: {x: 0.27, y: 1.62, z: 8.36}},
         {o: camera.rotation,        p: {x: -0.221, y: 0.164, z: 0.038}},
-        {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4in},
-        {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4out},
+        {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}, ease: power4out},
         {o: cutout2.position,       p: {x: -.1,       y:hoverHeight,       z:hoverDepth}},
         {o: cutout2.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
         {o: cutout3.position,       p: {x: 1.5,       y:hoverHeight + .25, z:hoverDepth - 2}},
         {o: cutout3.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
 
-        {o: matrixCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4in},
-        {o: matrixCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
-        {o: infillCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4in},
-        {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
+        {o: matrixCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4out},
+        {o: matrixCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}, ease: power4out},
+        {o: infillCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4out},
+        {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}, ease: power4out},
 
-        {o: matrixMat,              p: {opacity:0}, ease: power4in},
-        {o: infillMat,              p: {opacity:0}, ease: power4in},
+        {o: matrixMat,              p: {opacity:0}, ease: power4out},
+        {o: infillMat,              p: {opacity:0}, ease: power4out},
         {o: sideMaterial,           p: {opacity:0}},
+
+        {o: content[2], p: {opacity: 0}},
+        {o: content[3], p: {opacity: 1}, ease: power4out},
     ]
 }, {
     // page 5a (panel breaks into components)
@@ -661,7 +686,10 @@ const pages = [{
 
         {o: matrixMat,              p: {opacity:1}},
         {o: infillMat,              p: {opacity:1}},
-        {o: material,               p: {opacity:1}}
+        {o: material,               p: {opacity:1}},
+
+        {o: content[3], p: {opacity: 0}},
+        {o: content[4], p: {opacity: 0}, ease: power16in},
     ]
 }, {
     // page 5b (three sections of panel)
@@ -687,7 +715,10 @@ const pages = [{
         {o: matrix2Mat,             p: {opacity:0}, ease: power4out},
         {o: robotMat,               p: {opacity:0}, ease: power4out},
         {o: infillMat,              p: {opacity:1}, ease: power4out},
-        {o: material,               p: {opacity:1}, ease: power4out}
+        {o: material,               p: {opacity:1}, ease: power4out},
+
+        {o: content[4], p: {opacity: 1}, ease: power16out},
+        {o: content[5], p: {opacity: 0}, ease: power16in},
     ]
 }, {
     // page 6 (robot constructing panel)
@@ -706,6 +737,9 @@ const pages = [{
         {o: material,               p: {opacity:0}},
         {o: matrix2Mat,             p: {opacity:1}},
         {o: robotMat,               p: {opacity:1}},
+
+        {o: content[4], p: {opacity: 0}},
+        {o: content[5], p: {opacity: 1}},
     ]
 }]
 
@@ -756,7 +790,6 @@ let userScroll = false
 
 
 window.addEventListener('load', ()=> {
-
     document.addEventListener("scroll", e => {
         animations.set(window.scrollY*animations.totalDuration/sizes.scroll)
         renderer.render(scene, camera)        
