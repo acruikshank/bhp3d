@@ -43,6 +43,7 @@ import * as dat from 'dat.gui'
  const hoverDepth = 2
  const panelWidth = 2.42
  const page0ZOffset = .5
+ const windowZ = -.12
  
  const cameraX = 0
  const cameraY = -1.19
@@ -53,7 +54,7 @@ import * as dat from 'dat.gui'
  const camera2Z = 4.5758
  
  const floorColor = 0x111111
- const windowColor = 0x000000
+ const windowColor = 0x555c62
  const groundColor = 0x111111
  const rotation = {x: -.1, y: .3, z: 0}
 
@@ -149,8 +150,8 @@ const windowMaterial = new THREE.MeshStandardMaterial({color: windowColor})
 const windowGui = gui.addFolder('window')
 windowGui.addColor({windowColor: windowMaterial.color.getHex()}, 'windowColor')
     .onChange((c)=>windowMaterial.color.setHex(c))
-windowMaterial.metalness = 0.4
-windowMaterial.roughness = 0.3
+windowMaterial.metalness = 0.677
+windowMaterial.roughness = 0.413
 windowMaterial.transparent = true
 windowMaterial.opacity = 0
 windowMaterial.depthWrite = false
@@ -234,23 +235,29 @@ matrixCutout.visible = false
 
 const floorGeometry = new THREE.BoxBufferGeometry(12, .075, 1)
 const floor1 = new THREE.Mesh(floorGeometry, floorMaterial)
-floor1.position.set(0, 1.05, -.75)
+floor1.position.set(0, 1.09, -.53)
 floor1.renderOrder=2
 const floor3 = new THREE.Mesh(floorGeometry, floorMaterial)
-floor3.position.set(0, -1.05, -.75)
+floor3.position.set(0, -1.09, -.53)
 floor3.renderOrder = 3
 
 const buildingGroup = new THREE.Group()
 buildingGroup.visible = false
 buildingGroup.add(floor1, floor3, cutout4, cutout5)
 
-const windowGeometry = new THREE.BoxBufferGeometry(.49, 1, .02)
-Array(24).fill().forEach((_,i)=>Array(2).fill().forEach((_,j) => {
+const windowGeometry = new THREE.BoxBufferGeometry(.49, 2.105, .02)
+Array(24).fill().forEach((_,i)=>{
+    if (i>=4 && i<20) return
     const window = new THREE.Mesh(windowGeometry, windowMaterial)
-    window.position.set(-5.5 + .5*i, -.5+j, -.3)
+    window.position.set(-5.5 + .5*i, 0, windowZ)
     window.renderOrder = 5
     buildingGroup.add(window)
-}))
+})
+const window2 = new THREE.Mesh(windowGeometry, windowMaterial)
+window2.position.set(0, 0, windowZ)
+window2.scale.x = 16
+window2.renderOrder = 5
+buildingGroup.add(window2)
 
 const groundGeometry = new THREE.PlaneBufferGeometry(200, 50)
 const ground = new THREE.Mesh(groundGeometry, groundMaterial)
@@ -530,7 +537,6 @@ const pop = x => 0
 const pages = [{
     // page 0 then (hover above panel)
     duration: 3,
-    ease: offsetEase(.1,.9),
     complete: () => {
         console.log("PAGE 0")
         buildingGroup.visible = false
@@ -587,16 +593,19 @@ const pages = [{
     },
     params: [
         {o: camera.position,    p: {x:-4.75, y:0.50, z:4.05}, ease:power2out},  
-        {o: camera.rotation,    p: {x: -0.23, y: -0.757, z: -0.194}, ease:power2out},
-        {o: cutout1.position,   p: {x:objectX-panelWidth/3, y:objectY, z:objectZ}},
-        {o: cutout2.position,   p: {x:objectX,              y:objectY, z:objectZ}},
-        {o: cutout3.position,   p: {x:objectX+panelWidth/3, y:objectY, z:objectZ}},
+        {o: camera.rotation,    p: {x: -0.23, y: -0.757, z: -0.194}, ease:power2out},        
+        {o: cutout1.position,   p: {x:objectX-panelWidth/3, y:objectY}, ease: power2in},
+        {o: cutout1.position,   p: {z:objectZ}, ease: power2out},
+        {o: cutout2.position,   p: {x:objectX,              y:objectY}, ease: power2in},
+        {o: cutout2.position,   p: {z:objectZ}, ease: power2out},
+        {o: cutout3.position,   p: {x:objectX+panelWidth/3, y:objectY}, ease: power2in},
+        {o: cutout3.position,   p: {z:objectZ}, ease: power2out},
         {o: cutout1.rotation,   p: {x:0, y:0, z:0}},
         {o: cutout2.rotation,   p: {x:0, y:0, z:0}},
         {o: cutout3.rotation,   p: {x:0, y:0, z:0}},
         {o: floorMaterial,      p: {opacity:1}, ease: power4out},
         {o: side2Material,      p: {opacity:1}, ease: power2out},
-        {o: windowMaterial,     p: {opacity:.5}, ease: power4out},
+        {o: windowMaterial,     p: {opacity:.75}, ease: power4out},
         {o: groundMaterial,     p: {opacity:1}, ease: power2out},
 
         {o: content[0], p: {opacity: 0}},
@@ -614,7 +623,7 @@ const pages = [{
         infillCutout.visible = false
     },
     params: [
-        {o: camera.position,        p: {x: -2.00, y: 2.25, z: 8}, ease: power2in},
+        {o: camera.position,        p: {x: -2.00, y: 2.25, z: 8}},
         {o: camera.rotation,        p: {x: -0.300, y: -0.0, z: -0.0}, ease: power2in},
         {o: cutout1.position,       p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}},
         {o: cutout1.rotation,       p: {x:rotation.x, y:rotation.y,        z:rotation.z}},
@@ -634,9 +643,9 @@ const pages = [{
         {o: content[3], p: {opacity: 0}, ease: power16in},
     ]
 }, {
-    // page 4 (cutout 1 in center)
+    // page 4 (cutout 1 to left)
     duration: 3,
-    ease: offsetEase(.3,1),
+    ease: offsetEase(.5,1),
     complete: () => {
         console.log("PAGE 4")
         buildingGroup.visible = false
