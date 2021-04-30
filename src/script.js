@@ -74,6 +74,8 @@ const matrixNormalTexture = textureLoader.load('./textures/matrix_normal.png')
 matrixNormalTexture.wrapS = matrixNormalTexture.wrapT = THREE.RepeatWrapping
 const infillTexture = textureLoader.load('./textures/infill.png')
 infillTexture.wrapS = infillTexture.wrapT = THREE.RepeatWrapping
+const infillNormalTexture = textureLoader.load('./textures/infill_normal.png')
+infillNormalTexture.wrapS = infillNormalTexture.wrapT = THREE.RepeatWrapping
 
 /**
  * Base
@@ -121,14 +123,13 @@ matrixMatFolder.add(matrixMat, 'roughness').min(0).max(1).step(.0001)
 
 const matrix2Mat = matrixMat.clone()
 
-const infillMat = new THREE.MeshStandardMaterial({color: 0xe6e6e6})
-infillMat.side = THREE.DoubleSide
+const infillMat = new THREE.MeshStandardMaterial({color: 0xb2b2b2})
 infillMat.transparent = true
 infillMat.map = infillTexture
-infillMat.normalMap = matrixNormalTexture
+infillMat.normalMap = infillNormalTexture
 gui.add(infillMat, 'displacementScale').min(-.1).max(0).step(.0001)
-infillMat.metalness = .45
-infillMat.roughness = 1
+infillMat.metalness = 0
+infillMat.roughness = .4
 infillMat.opacity = 0
 const infillMatFolder = gui.addFolder('infill mat')
 infillMatFolder.addColor({matColor: infillMat.color.getHex()}, 'matColor')
@@ -222,7 +223,7 @@ const cutout5 = new THREE.Mesh(
 cutout5.position.set(objectX+panelWidth+gap,objectY,objectZ)
 
 const infillCutout = new THREE.Mesh(    
-    panelGeometry(panelWidth/3, 2.1, .2, 128, 128, 13.1, zfn(-0.666,-1,2/3,2.1)),
+    panelGeometry(panelWidth/3, 2.1, .2, 128, 128, 13.1/5, zfn(-0.666,-1,2/3,2.1)),
     infillMat
 )
 infillCutout.visible = false
@@ -474,7 +475,6 @@ const resize = () => {
 window.addEventListener('resize', resize)
 window.addEventListener('load', resize)
 
-
 /**
  * Camera
  */
@@ -540,6 +540,7 @@ const pages = [{
     complete: () => {
         console.log("PAGE 0")
         buildingGroup.visible = false
+        side2Material.transparent = true
         console.log(camera.rotation)
     },
     params: [
@@ -557,7 +558,6 @@ const pages = [{
     complete: () => { 
         console.log("PAGE 1")
         buildingGroup.visible = true
-        side2Material.transparent = false
         console.log(camera.rotation)
     },
     params: [
@@ -603,10 +603,11 @@ const pages = [{
         {o: cutout1.rotation,   p: {x:0, y:0, z:0}},
         {o: cutout2.rotation,   p: {x:0, y:0, z:0}},
         {o: cutout3.rotation,   p: {x:0, y:0, z:0}},
-        {o: floorMaterial,      p: {opacity:1}, ease: power4out},
-        {o: side2Material,      p: {opacity:1}, ease: power2out},
-        {o: windowMaterial,     p: {opacity:.75}, ease: power4out},
-        {o: groundMaterial,     p: {opacity:1}, ease: power2out},
+
+        {o: floorMaterial,      p: {opacity:1}, ease: offsetEase(0,.3)},
+        {o: side2Material,      p: {opacity:1}, ease: offsetEase(0,.3)},
+        {o: windowMaterial,     p: {opacity:.75}, ease: offsetEase(0,.3)},
+        {o: groundMaterial,     p: {opacity:1}, ease: offsetEase(0,.3)},
 
         {o: content[0], p: {opacity: 0}},
         {o: content[1], p: {opacity: 1}, ease: power4out},
@@ -669,8 +670,8 @@ const pages = [{
         {o: infillCutout.position,  p: {x:-1.5,       y:hoverHeight - .25, z:hoverDepth + 2}, ease: power4out},
         {o: infillCutout.rotation,  p: {x:rotation.x, y:rotation.y,        z:rotation.z}, ease: power4out},
 
-        {o: matrixMat,              p: {opacity:0}, ease: power4out},
-        {o: infillMat,              p: {opacity:0}, ease: power4out},
+        {o: matrixMat,              p: {opacity:0}, ease: offsetEase(0,.02)},
+        {o: infillMat,              p: {opacity:0}, ease: offsetEase(0,.02)},
         {o: sideMaterial,           p: {opacity:0}},
 
         {o: content[2], p: {opacity: 0}},
@@ -704,7 +705,7 @@ const pages = [{
         {o: material,               p: {opacity:1}},
 
         {o: content[3], p: {opacity: 0}},
-        {o: content[4], p: {opacity: 0}, ease: power16in},
+        {o: content[4], p: {opacity: 0}, ease: offsetEase(0,.3)},
     ]
 }, {
     // page 5b (three sections of panel)
